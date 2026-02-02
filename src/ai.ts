@@ -1,4 +1,4 @@
-export class OllamaClient {
+export class AIClient {
     private modelName: string;
     private endpoint: string;
 
@@ -10,8 +10,7 @@ export class OllamaClient {
         this.endpoint = endpoint;
     }
 
-    async generate(event: string, fileData: string): Promise<string> {
-        const prompt = this.generatePrompt(event, fileData);
+    async generate(prompt: string): Promise<string> {
         const res = await fetch(this.endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -40,4 +39,5 @@ export class OllamaClient {
     }
 }
 
-export default new OllamaClient();
+const aiClient = new AIClient();
+export default aiClient;
