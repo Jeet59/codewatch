@@ -1,68 +1,43 @@
 export class OllamaClient {
-  private modelName: string;
-  private endpoint: string;
-  private timeoutMs: number;
+    private modelName: string;
+    private endpoint: string;
 
-  constructor(
-    modelName = 'qwen3:4b-instruct-2507-q4_K_M',
-    endpoint = 'http://localhost:11434/api/generate',
-    timeoutMs = 20000
-  ) {
-    this.modelName = modelName;
-    this.endpoint = endpoint;
-    this.timeoutMs = timeoutMs;
-  }
+    constructor(
+        modelName = 'qwen3:4b-instruct-2507-q4_K_M',
+        endpoint = 'http://localhost:11434/api/generate'
+    ) {
+        this.modelName = modelName;
+        this.endpoint = endpoint;
+    }
 
-  async generate(prompt: string): Promise<string> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+    async generate(event: string, fileData: string): Promise<string> {
+        const prompt = this.generatePrompt(event, fileData);
+        const res = await fetch(this.endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: this.modelName,
+                prompt,
+                stream: false
+            })
+        });
 
-    try {
-      const res = await fetch(this.endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json'
-        },
-        signal: controller.signal,
-        body: JSON.stringify({ model: this.modelName, prompt })
-      });
-
-      clearTimeout(timeout);
-
-      if (!res.ok) {
-        const body = await res.text().catch(() => '<unreadable body>');
-        throw new Error(`Ollama request failed: ${res.status} ${res.statusText} - ${body}`);
-      }
-
-      const text = await res.text();
-
-      // Try to parse JSON response; fall back to raw text.
-      try {
-        const json = JSON.parse(text);
-
-        // Common response shapes: { output: '...' } or { text: '...' } or { results: [...] }
-        if (typeof json === 'string') return json;
-        if (json.output && typeof json.output === 'string') return json.output;
-        if (json.text && typeof json.text === 'string') return json.text;
-        if (Array.isArray(json.results)) {
-          return json.results
-            .map((r: any) => (typeof r === 'string' ? r : JSON.stringify(r)))
-            .join('');
+        if (!res.ok) {
+            throw new Error(`Ollama request failed: ${res.status}`);
         }
 
-        // If no known field, return the stringified JSON
-        return JSON.stringify(json);
-      } catch (e) {
-        return text;
-      }
-    } catch (err: any) {
-      if (err.name === 'AbortError') throw new Error('Ollama request timed out');
-      throw err;
-    } finally {
-      clearTimeout(timeout);
+        const json = await res.json();
+        return json.response;
     }
-  }
+
+    generatePrompt(event: string, fileData: string): string {
+        return `${this.getSystemPrompt()}\n\nEvent: ${event}\n\n${fileData}`;
+    }
+
+    getSystemPrompt(): string {
+        return `You are an AI assistant that helps summarize code changes in a concise manner. 
+        Given the file data and its change history, provide a summary of the last change made to the file.`;
+    }
 }
 
-export default OllamaClient;
+export default new OllamaClient();

@@ -1,40 +1,19 @@
 import chokidar from 'chokidar';
-import dbClient from './db';
+import dbClient from './db/index';
 
 export function startWatcher(repoPath: string) {
-  const watcher = chokidar.watch(repoPath, {
-    persistent: true,
-    ignoreInitial: true,
-    ignored: [/node_modules/, /\.git/, /dist/]
-  });
+    const db = dbClient;
+    const watcher = chokidar.watch(repoPath, {
+        persistent: true,
+        ignoreInitial: true,
+        ignored: [/node_modules/, /\.git/, /dist/]
+    });
 
-  try {
-    dbClient.exec(`
-      CREATE TABLE IF NOT EXISTS file_events(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        path TEXT NOT NULL,
-        event TEXT NOT NULL,
-        ts INTEGER NOT NULL
-      );
-    `);
-  } catch (err) {
-    console.error('DB init error:', err);
-  }
+    watcher
+        .on('add', (filePath: string) => db.addFile(filePath))
+        .on('change', (filePath: string) => db.updateFile(filePath))
+        .on('unlink', (filePath: string) => db.deleteFile(filePath))
+        .on('error', error => console.error(`Watcher error: ${error}`));
 
-  const insertEvent = (evt: string, filePath: string) => {
-    const ts = Date.now();
-    try {
-      dbClient.run('INSERT INTO file_events(path,event,ts) VALUES (?,?,?)', [filePath, evt, ts]);
-    } catch (err) {
-      console.error('DB insert error:', err);
-    }
-  };
-
-  watcher
-    .on('add', path => insertEvent('add', path))
-    .on('change', path => insertEvent('change', path))
-    .on('unlink', path => insertEvent('unlink', path))
-    .on('error', error => console.error(`Watcher error: ${error}`));
-
-  return watcher;
+    return watcher;
 }
