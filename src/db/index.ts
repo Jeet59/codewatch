@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import Database from 'better-sqlite3';
-import { initTables, Rule, FileChange, ChangeHistory } from './schemas';
+import { initTables, Rule, FileChange, ChangeHistory, setRules } from './schemas';
 import { generateDiff } from '../utils/diff';
 
 export class DBClient {
@@ -12,6 +12,7 @@ export class DBClient {
         fs.mkdirSync(dir, { recursive: true });
         this.db = new Database(dbPath);
         initTables(this.db);
+        setRules(this.db);
     }
 
     async addFile(filePath: string): Promise<void> {
