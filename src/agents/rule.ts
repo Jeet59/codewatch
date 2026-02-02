@@ -42,5 +42,14 @@ caption: <A concise caption for the notification if violated, else N/A>
             subtitle: res.caption || 'Rule Violation Detected',
             sound: true,
         });
+        console.log(
+            "Console log for Notification sent by rule agent.",
+            {
+            title: 'Code Change Rule Violation',
+            message: res.explanation || 'A code change has violated a predefined rule.',
+            subtitle: res.caption || 'Rule Violation Detected',
+            sound: true,
+        }
+        );
     }
 }

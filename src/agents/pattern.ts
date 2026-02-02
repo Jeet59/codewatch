@@ -49,5 +49,15 @@ caption: <A concise caption for the notification if violated, else N/A>
             subtitle: res.caption || 'Pattern Noted',
             sound: true,
         });
+
+        console.log(
+            "Console log for Notification sent by pattern agent.",
+            {
+            title: 'Code Change Pattern Noted',
+            message: res.explanation || 'A new pattern has been noted from recent code changes.',
+            subtitle: res.caption || 'Pattern Noted',
+            sound: true,
+        }
+        )
     }
 }
